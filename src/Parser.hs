@@ -37,6 +37,8 @@ lis = makeTokenParser
                         , "!="
                         , ";"
                         , ","
+                        , "++"
+                        , "--"
                         ]
     }
   )
@@ -50,9 +52,23 @@ intexp = chainl1 intterm addop
 addop :: Parser (Exp Int -> Exp Int -> Exp Int)
 addop = (reservedOp lis "+" >> return Plus)
   <|> (reservedOp lis "-" >> return Minus)
+   <|> (reservedOp lis "*" >> return Times)
+    <|> (reservedOp lis "/" >> return Div)
+     <|> (reservedOp lis "--" >> return VarDec)
+      <|> (reservedOp lis "++" >> return VarInc)
 
 intterm :: Parser (Exp Int)
-intterm = undefined
+intterm = do n <- nat
+             return n
+           <|>do  d <-identifier lis
+                  return d
+               <|> do symbol "-"
+                      n <- nat
+                      return UMinus n
+                    <|> do p <-parens lis intexp
+                           return p
+ 
+
 
 ------------------------------------
 --- Parser de expresiones booleanas

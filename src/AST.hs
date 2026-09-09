@@ -14,7 +14,8 @@ data Exp a where
   Minus  :: Exp Int -> Exp Int -> Exp Int
   Times  :: Exp Int -> Exp Int -> Exp Int
   Div    :: Exp Int -> Exp Int -> Exp Int
-
+  VarInc :: Var -> ExpInt         -- Ejercicio 2, hay que chequear
+  VarDec :: Var -> ExpInt         -- ||
   -- Expresiones booleanas
   BTrue  :: Exp Bool
   BFalse :: Exp Bool
