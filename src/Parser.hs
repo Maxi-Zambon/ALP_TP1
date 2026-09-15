@@ -23,10 +23,13 @@ lis = makeTokenParser
     , commentLine     = "//"
     , opLetter        = char '='
     , reservedNames   = ["true", "false", "skip", "if", "else", "repeat", "until"]
-    , reservedOpNames = [ "+"
+    , reservedOpNames = [ "+" -- simbolos de intexp
                         , "-"
                         , "*"
                         , "/"
+                        , "++"
+                        , "--"
+                        -- Simbolos de boolexp
                         , "<"
                         , ">"
                         , "&&"
@@ -37,8 +40,6 @@ lis = makeTokenParser
                         , "!="
                         , ";"
                         , ","
-                        , "++"
-                        , "--"
                         ]
     }
   )
@@ -49,25 +50,42 @@ lis = makeTokenParser
 intexp :: Parser (Exp Int)
 intexp = chainl1 intterm addop
 
+-- Aclaracion: La función chainl1 está diseñada exclusivamente para operadores binarios infijos
+
 addop :: Parser (Exp Int -> Exp Int -> Exp Int)
 addop = (reservedOp lis "+" >> return Plus)
-  <|> (reservedOp lis "-" >> return Minus)
-   <|> (reservedOp lis "*" >> return Times)
-    <|> (reservedOp lis "/" >> return Div)
-     <|> (reservedOp lis "--" >> return VarDec)
-      <|> (reservedOp lis "++" >> return VarInc)
+        <|> (reservedOp lis "-" >> return Minus)
+   
+   
+-----------------------------------
+--- Parser de términos (Multiplicación y División)
+-----------------------------------
 
 intterm :: Parser (Exp Int)
-intterm = do n <- nat
-             return n
-           <|>do  d <-identifier lis
-                  return d
-               <|> do symbol "-"
-                      n <- nat
-                      return UMinus n
-                    <|> do p <-parens lis intexp
-                           return p
- 
+intterm = chainl1 intfactor mulop
+
+mulop :: Parser (Exp Int -> Exp Int -> Exp Int)
+mulop = (reservedOp lis "*" >> return Times)
+        <|> (reservedOp lis "/" >> return Div)
+
+-----------------------------------
+--- Parser de factores (Números, Variables, Paréntesis, ++, -- y Menos Unario)
+-----------------------------------
+intfactor :: Parser (Exp Int)
+intfactor = try (do reservedOp lis "-"
+                    f <- intfactor
+                    return (UMinus f))
+        <|> parens lis intexp
+        <|> try (do v <- identifier lis
+                    reservedOp lis "++"
+                    return (VarInc v))
+        <|> try (do v <- identifier lis
+                    reservedOp lis "--"
+                    return (VarDec v))
+        <|> do v <- identifier lis
+               return (Var v)
+        <|> do n <- natural lis
+               return (Const (fromIntegral n))
 
 
 ------------------------------------
@@ -75,7 +93,43 @@ intterm = do n <- nat
 ------------------------------------
 
 boolexp :: Parser (Exp Bool)
-boolexp = undefined
+boolexp = chainl1 boolterm orop
+
+orop :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
+orop = reservedOp lis "||" >> return Or
+        
+boolterm :: Parser (Exp Bool)
+boolterm = chainl1 boolfactor andop
+
+andop :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
+andop = reservedOp lis "&&" >> return And
+
+-- Obs: no usamos chainl1 pues ! no es op binario infijo, entonces toca a mano
+boolfactor :: Parser (Exp Bool)
+boolfactor = try (do reservedOp lis "!"
+                     b <- boolfactor
+                     return (Not b))
+         <|> boolatom 
+
+-- Valores atómicos y Operaciones Relacionales
+boolatom :: Parser (Exp Bool)
+boolatom = parens lis boolexp
+       <|> (reserved lis "true" >> return BTrue)
+       <|> (reserved lis "false" >> return BFalse)
+       <|> relation
+
+-- Parser para los operadores relacionales (no asociativos)
+relation :: Parser (Exp Bool)
+relation = do e1 <- intexp
+              op <- relop
+              e2 <- intexp
+              return (op e1 e2)
+
+relop :: Parser (Exp Int -> Exp Int -> Exp Bool)
+relop = (reservedOp lis "==" >> return Eq)
+    <|> (reservedOp lis "!=" >> return NEq)
+    <|> (reservedOp lis "<"  >> return Lt)
+    <|> (reservedOp lis ">"  >> return Gt)
 
 -----------------------------------
 --- Parser de comandos
