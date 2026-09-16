@@ -7,6 +7,7 @@ where
 import           AST
 import qualified Data.Map.Strict               as M
 import           Data.Strict.Tuple
+import Data.Bits (Bits(xor))
 
 -- Estados
 type State = M.Map Variable Int
@@ -14,17 +15,18 @@ type State = M.Map Variable Int
 -- Estado vacío
 -- Completar la definición
 initState :: State
-initState = undefined
+initState = M.empty
 
 -- Busca el valor de una variable en un estado
 -- Completar la definición
 lookfor :: Variable -> State -> Int
-lookfor = undefined
+lookfor k m = m M.! k
+
 
 -- Cambia el valor de una variable en un estado
 -- Completar la definición
 update :: Variable -> Int -> State -> State
-update = undefined
+update v x m = M.adjust (\i -> x) v m
 
 -- Evalúa un programa en el estado vacío
 eval :: Comm -> State
