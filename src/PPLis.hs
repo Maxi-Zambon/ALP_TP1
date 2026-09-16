@@ -29,6 +29,8 @@ pExp (Gt  a b)   = pExp a <+> text ">" <+> pExp b
 pExp (And a b)   = pExp a <+> text "&&" <+> pExp b
 pExp (Or  a b)   = pExp a <+> text "||" <+> pExp b
 pExp (Not b  )   = text "!" <+> pExp b
+pExp (VarInc v)  = pVar v <+> text "++"
+pExp (VarDec v)  = pVar v <+> text "--"
 pExp _ =
   error
     "El Pretty Printer no está implementado para las extensiones del Ejercicio 1."

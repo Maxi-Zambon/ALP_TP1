@@ -150,11 +150,11 @@ commterm = try (do v <- identifier lis
 
 commattom :: Parser Comm
 commattom = try (do reserved lis "if"
-               b <- boolexp
-               c <- braces lis comm
-               reserved lis "else"
-               c2 <- braces lis comm
-               return (IfThenElse b c c2))
+                    b <- boolexp
+                    c <- braces lis comm
+                    reserved lis "else"
+                    c2 <- braces lis comm
+                    return (IfThenElse b c c2))
 
             <|> do reserved lis "if"
                    b <- boolexp
