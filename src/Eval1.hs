@@ -38,12 +38,37 @@ stepCommStar :: Comm -> State -> State
 stepCommStar Skip s = s
 stepCommStar c    s = Data.Strict.Tuple.uncurry stepCommStar $ stepComm c s
 
+--la llamada recursiva lo que hace basicamente es que stepComm me devuelve un estado con una commando y un estado
+--resultante de evaluar un paso. Con uncurry permite que stepCommStar tome ese par como Comm -> State.
+
 -- Evalúa un paso de un comando en un estado dado
 -- Completar la definición
 stepComm :: Comm -> State -> Pair Comm State
-stepComm = undefined
+stepComm c s = case of parseComm c
+                  IfThenElse b c1 c2 ->let (b', s') =  (evalExp boolexp b) in case of 
+                                                                              BTrue -> (c1, s')
+                                                                              otherwise -> (c2, s')
+
+                  IfThen b c          -> let (b', s') =  (evalExp boolexp b) in case of 
+                                                                              BTrue -> (c1, s')
+                                                                              otherwise -> (Skip, s')
+
+
+                  RepeatUntil c b     -> (Seq c IfThenElse b Skip RepeatUntil b, s)
+
+                  Skip                -> (Skip, s)
+
+                  Seq Skip c1         -> (c1, s)
+
+                  Seq c0 c1          -> let (c0', s') = stepComm c0 s in (Seq c0' c1, s')
+
+                  Let v e             -> let (n, s') = evalExp (intexp e) in (Skip, update v n s')
+
+                  otherwise           -> (c,s)
+                                          
 
 -- Evalúa una expresión
 -- Completar la definición
+
 evalExp :: Exp a -> State -> Pair a State
 evalExp = undefined
