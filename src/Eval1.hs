@@ -26,7 +26,7 @@ lookfor k m = m M.! k
 -- Cambia el valor de una variable en un estado
 -- Completar la definición
 update :: Variable -> Int -> State -> State
-update v x m = M.adjust (\i -> x) v m
+update v x m = M.insert v x m
 
 -- Evalúa un programa en el estado vacío
 eval :: Comm -> State
