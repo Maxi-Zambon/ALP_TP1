@@ -38,12 +38,6 @@ stepComm c s = case c of
       True  -> Right (c1 :!: s')
       False -> Right (c2 :!: s')
 
-  IfThen b c -> case evalExp b s of
-    Left err         -> Left err
-    Right (b' :!: s') -> case b' of
-      True  -> Right (c :!: s')
-      False -> Right (Skip :!: s')
-
   RepeatUntil c b -> Right (Seq c (IfThenElse b Skip (RepeatUntil c b)) :!: s)
 
   Skip -> Right (Skip :!: s)
