@@ -49,9 +49,6 @@ stepComm c s = case c of
                                                                               True -> (c1 :!: s')
                                                                               False -> (c2 :!: s')
 
-                  IfThen b c          -> let (b' :!: s') =  (evalExp b s) in case b' of 
-                                                                              True -> (c :!: s')
-                                                                              False -> (Skip :!: s')
 
 
                   RepeatUntil c b     -> (Seq c (IfThenElse b Skip (RepeatUntil c b)) :!: s)
