@@ -14,7 +14,7 @@ type State = (M.Map Variable Int, String)
 -- Estado vacío
 -- Completar la definición
 initState :: State
-initState = (initState = M.empty, "")
+initState = (M.empty, "")
 
 -- Busca el valor de una variable en un estado
 -- Completar la definición
