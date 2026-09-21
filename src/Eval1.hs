@@ -45,26 +45,25 @@ stepCommStar c    s = Data.Strict.Tuple.uncurry stepCommStar $ stepComm c s
 -- Completar la definición
 stepComm :: Comm -> State -> Pair Comm State
 stepComm c s = case c of
-                  IfThenElse b c1 c2 -> let (b', s') =  (evalExp b s) in case b' of 
-                                                                              BTrue -> (c1, s')
-                                                                              otherwise -> (c2, s')
+                  IfThenElse b c1 c2 -> let (b' :!: s') =  (evalExp b s) in case b' of 
+                                                                              True -> (c1 :!: s')
+                                                                              False -> (c2 :!: s')
 
-                  IfThen b c          -> let (b', s') =  (evalExp b s) in case b' of 
-                                                                              BTrue -> (c1, s')
-                                                                              otherwise -> (Skip, s')
+                  IfThen b c          -> let (b' :!: s') =  (evalExp b s) in case b' of 
+                                                                              True -> (c :!: s')
+                                                                              False -> (Skip :!: s')
 
 
-                  RepeatUntil c b     -> (Seq c (IfThenElse b Skip (RepeatUntil b)), s)
+                  RepeatUntil c b     -> (Seq c (IfThenElse b Skip (RepeatUntil c b)) :!: s)
 
-                  Skip                -> (Skip, s)  
+                  Skip                -> (Skip :!: s)  
 
-                  Seq Skip c1         -> (c1, s)
+                  Seq Skip c1         -> (c1 :!: s)
 
-                  Seq c0 c1          -> let (c0', s') = stepComm c0 s in (Seq c0' c1, s')
+                  Seq c0 c1          -> let (c0' :!: s') = stepComm c0 s in (Seq c0' c1 :!: s')
 
-                  Let v e             -> let (n, s') = (evalExp e s) in (Skip, update v n s')
+                  Let v e             -> let (n :!: s') = (evalExp e s) in (Skip :!: update v n s')
 
-                  otherwise           -> (c,s)
                                           
 
 -- Evalúa una expresión
@@ -72,55 +71,59 @@ stepComm c s = case c of
 --me llega una expresion booleana o entera parseada. Tengo que evaluarla.
 evalExp :: Exp a -> State -> Pair a State
 evalExp e s = case e of 
-                Const nv -> (nv, s)
+                Const nv -> (nv :!: s)
 
-                Var v -> ((lookfor v s), s) 
+                Var v -> ((lookfor v s) :!: s) 
 
-                UMinus f -> let (n, s') = (evalExp f s) in (-n, s')
+                UMinus f -> let (n :!: s') = (evalExp f s) in (-n :!: s')
 
-                Plus e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                  (n1, s'') = (evalExp e1, s')
-                                    in (n0+n1, s'')
+                Plus e0 e1 -> let (n0 :!: s') = (evalExp e0 s)
+                                  (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0+n1 :!: s'')
 
-                Minus e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                   (n1, s'') = (evalExp e1, s')
-                                     in (n0-n1, s'')
+                Minus e0 e1 -> let (n0 :!: s') = (evalExp e0 s)
+                                   (n1 :!: s'') = (evalExp e1 s')
+                                     in (n0-n1 :!: s'')
 
-                Times e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                   (n1, s'') = (evalExp e1, s')
-                                     in (n0*n1, s'')
+                Times e0 e1 -> let (n0 :!: s') = (evalExp e0 s)
+                                   (n1 :!: s'') = (evalExp e1 s')
+                                     in (n0*n1 :!: s'')
 
-                Div e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 `div` n1, s'')
+                Div e0 e1 -> let (n0:!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0 `div` n1 :!: s'')
 
-                Eq e0 e1 -> let  (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                     in (n0 == n1, s'')
+                VarInc v -> let (n :!: s') = (evalExp (Var v) s) in (n+1 :!: (update v (n+1) s')) 
 
-                NEq e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 != n1, s'')
+                VarDec v -> let (n :!: s') = (evalExp (Var v) s) in (n-1 :!: (update v (n-1) s')) 
 
-                Lt e0 e1 -> let  (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 < n1, s'')
+                Eq e0 e1 -> let  (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                     in (n0 == n1 :!: s'')
 
-                Gt e0 e1 -> let  (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 > n1, s'')
+                NEq e0 e1 -> let (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0 /= n1 :!: s'')
+
+                Lt e0 e1 -> let  (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0 < n1 :!: s'')
+
+                Gt e0 e1 -> let  (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0 > n1 :!: s'')
 
 
-                BTrue -> (True, s)
+                BTrue -> (True :!: s)
 
-                BFalse -> (False, s)
+                BFalse -> (False :!: s)
 
-                Not e -> let (b, s') = (evalExp e s) in (not b, s')
+                Not e -> let (b :!: s') = (evalExp e s) in (not b :!: s')
 
-                And e0 e1 -> let (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 && n1, s'')
+                And e0 e1 -> let (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in (n0 && n1 :!: s'')
 
-                Or e0 e1 -> let  (n0, s') = (evalExp e0 s)
-                                 (n1, s'') = (evalExp e1, s')
-                                    in (n0 || n1, s'')                   
+                Or e0 e1 -> let  (n0 :!: s') = (evalExp e0 s)
+                                 (n1 :!: s'') = (evalExp e1 s')
+                                    in ((n0 || n1) :!: s'')                   
